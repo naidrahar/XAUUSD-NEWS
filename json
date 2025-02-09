@@ -1,21 +1,63 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+from datetime import datetime
 
+# URL ForexFactory kalender
 url = 'https://www.forexfactory.com/calendar.php'
+
+# Lakukan request ke halaman ForexFactory
 response = requests.get(url)
 soup = BeautifulSoup(response.content, 'html.parser')
 
-# Extracting event titles and impacts
-events = []
-for event in soup.find_all('tr', class_='calendar__row'):
-    title = event.find('td', class_='calendar__event-title').get_text(strip=True)
-    impact = event.find('span', class_='impact__icon').get('title', 'No Impact')
-    
-    events.append({'title': title, 'impact': impact})
+# Ambil semua event di kalender
+events = soup.find_all('tr', class_='calendar__row')
 
-# Save the data to a JSON file
-with open('forex_events.json', 'w') as file:
-    json.dump(events, file)
+# List untuk menyimpan data event
+event_data = []
 
-print("Data saved to forex_events.json")
+# Parsing data untuk setiap event
+for event in events:
+    try:
+        # Ambil waktu event
+        time = event.find('td', class_='calendar__time').get_text(strip=True)
+
+        # Ambil nama event
+        title = event.find('td', class_='calendar__event').get_text(strip=True)
+
+        # Ambil dampak event
+        impact = event.find('td', class_='impact').find('span').get('title')
+
+        # Ambil negara
+        country = event.find('span', class_='calendar__country').get_text(strip=True)
+
+        # Ambil forecast, actual, dan previous jika tersedia
+        forecast = event.find('td', class_='calendar__forecast').get_text(strip=True) or None
+        actual = event.find('td', class_='calendar__actual').get_text(strip=True) or None
+        previous = event.find('td', class_='calendar__previous').get_text(strip=True) or None
+
+        # Simpan data event ke dictionary
+        event_info = {
+            'time': time,
+            'title': title,
+            'impact': impact,
+            'country': country,
+            'forecast': forecast,
+            'actual': actual,
+            'previous': previous,
+            'date_scraped': datetime.now().isoformat()
+        }
+        
+        # Tambahkan event ke list
+        event_data.append(event_info)
+
+    except AttributeError:
+        # Jika data tidak lengkap atau tidak tersedia
+        continue
+
+# Simpan data ke file JSON
+with open('forex_factory_events.json', 'w') as json_file:
+    json.dump(event_data, json_file, indent=4)
+
+print("Data telah disimpan ke file 'forex_factory_events.json'.")
+
