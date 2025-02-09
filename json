@@ -1,0 +1,21 @@
+import requests
+from bs4 import BeautifulSoup
+import json
+
+url = 'https://www.forexfactory.com/calendar.php'
+response = requests.get(url)
+soup = BeautifulSoup(response.content, 'html.parser')
+
+# Extracting event titles and impacts
+events = []
+for event in soup.find_all('tr', class_='calendar__row'):
+    title = event.find('td', class_='calendar__event-title').get_text(strip=True)
+    impact = event.find('span', class_='impact__icon').get('title', 'No Impact')
+    
+    events.append({'title': title, 'impact': impact})
+
+# Save the data to a JSON file
+with open('forex_events.json', 'w') as file:
+    json.dump(events, file)
+
+print("Data saved to forex_events.json")
